@@ -1,0 +1,13 @@
+{
+  "name": "gem",
+  "version": "0.1.0",
+  "description": "Ruby gem helpers for Claude Code. Includes /gem:bump for changelog-rich dependency bumps.",
+  "author": {
+    "name": "84codes",
+    "url": "https://github.com/84codes"
+  },
+  "homepage": "https://github.com/84codes/claude-plugins/tree/main/plugins/gem",
+  "repository": "https://github.com/84codes/claude-plugins",
+  "license": "MIT",
+  "keywords": ["ruby", "bundler", "gem", "dependencies"]
+}

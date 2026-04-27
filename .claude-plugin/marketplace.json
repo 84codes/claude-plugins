@@ -1,0 +1,17 @@
+{
+  "name": "84codes",
+  "owner": {
+    "name": "84codes",
+    "url": "https://github.com/84codes"
+  },
+  "plugins": [
+    {
+      "name": "gem",
+      "source": "./plugins/gem",
+      "description": "Ruby gem helpers for Claude Code. Includes /gem:bump for changelog-rich dependency bumps.",
+      "version": "0.1.0",
+      "category": "ruby",
+      "keywords": ["ruby", "bundler", "gem", "dependencies"]
+    }
+  ]
+}
