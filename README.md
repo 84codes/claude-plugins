@@ -18,6 +18,8 @@ Then install any plugin from it:
 Both steps are needed: the first trusts the marketplace, the second enables a
 specific plugin. A marketplace can host many plugins, so the steps are separate.
 
+If the plugin's commands don't show up in the `/` menu, run `/reload-plugins`.
+
 ## Plugins
 
 | Plugin | Description |
@@ -43,6 +45,9 @@ plugins), refresh the cache:
 
 Without this, Claude Code keeps using the cached marketplace and you'll see
 errors like `Plugin "<name>" not found in any marketplace`.
+
+To pick up edits to an installed plugin's commands, agents, or hooks without
+reinstalling, run `/reload-plugins`.
 
 Once everything works, push to GitHub and users can install via
 `/plugin marketplace add 84codes/claude-plugins`.
