@@ -27,9 +27,13 @@ Inside a Bundler project:
 For each gem, the command will:
 
 1. Run `bundle update --conservative <gem>`
-2. Diff `Gemfile.lock` to find old/new versions
-3. Fetch release notes from rubygems.org and the gem's GitHub releases
-4. Commit with a summary of notable changes
+2. Diff `Gemfile.lock` to find every gem whose version changed — the requested
+   gem plus any transitive dependencies pulled along (e.g. bumping
+   `aws-sdk-marketplacemetering` may also bump `aws-sdk-core`)
+3. Fetch release notes and security advisories from rubygems.org and GitHub for
+   the primary gem **and** every transitive bump
+4. Commit with a summary of notable changes; transitive bumps appear in their
+   own section in the same commit
 5. Run `bundle exec rake test` before moving on
 
 ## Requirements
