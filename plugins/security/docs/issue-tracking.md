@@ -46,8 +46,9 @@ Each scan drops a self-contained bundle at `reports/<slug>/` on the VM:
 
 ## Issue model
 
-- **Scan issue** (epic), one per run: holds the report + general comments; closes
-  when all its finding sub-issues close.
+- **Scan issue** (epic), one per run: holds the report (as a comment, see
+  **Report comment** below) + general comments; closes when all its finding
+  sub-issues close.
 - **Finding sub-issue**, one per **Critical / High / Medium** (confirmed+likely).
   **Low/Info stay in the report appendix — never issues** (same high-signal
   contract as the report).
@@ -63,6 +64,12 @@ Each scan drops a self-contained bundle at `reports/<slug>/` on the VM:
 - **PoC handling:** repos are private/internal, so full PoC commands go in the
   issues (the remediation is a high-level *proposed fix*, not a patch). (If a target were public, use GitHub Security Advisories for
   Critical/High instead.)
+- **Report comment:** the full `report.md` is **embedded** in a comment on the
+  scan epic, wrapped in a `<details><summary>…</summary>` block (collapsed by
+  default) so the long report never buries the epic's sub-issue checklist. Always
+  embed the report text itself — **never** reference a local bundle path
+  (`reports/<slug>/…`) or any filesystem location, which is unreachable from
+  GitHub. The epic body points readers to this comment, not to disk.
 
 ## Reconcile algorithm (idempotent, keyed by `fp`)
 
@@ -74,6 +81,11 @@ by the `fp:<hash>` label (`gh issue list --search "label:fp:<fp>" --state all`):
 - **closed match that still reproduces** → reopen as a regression + comment.
 - **previously open, now absent / not reproduced** (dynamic re-verify) → comment +
   close.
+
+The **report comment** on the epic is upserted the same way: tag it with a
+hidden marker (`<!-- vuln-audit:report -->`), then find-and-edit that comment
+on re-run instead of posting a new one — so the epic never accumulates
+duplicate report blocks.
 
 Re-running the courier on the same bundle is a no-op. The dynamic-repro phase
 doubles as the fix-verifier, so "everything closed when done" is provable, not
