@@ -55,12 +55,14 @@ Each scan drops a self-contained bundle at `reports/<slug>/` on the VM:
 - **Title:** `[Critical] training-tool-AC-42: <short title> (access-control)`.
 - **Body:** the report's finding block (refs · location · PoC · impact ·
   proposed fix) + backlink to the scan issue + the `fp` marker.
-- **Labels:** `security`, `security-scan` (epic), `sev:{critical,high,medium}`,
-  `vuln:<class>`, `fp:<hash>`, `status:{confirmed,likely}` (verification outcome).
+- **Labels:** `security`, `security-scan` (epic), and `fp:<hash>` (the dedup
+  key). Severity and class aren't labels — they live in the title
+  (`[Critical] … (access-control)`) and the display ID, so a `sev:`/`vuln:`
+  label would just duplicate that text.
 - **Two distinct "statuses":** *verification* (confirmed/likely — a scan output,
-  carried as the finding's badge + the `status:` label) vs *lifecycle*
-  (open/fixed — owned entirely by the GitHub issue). The **report has no status
-  table**; the scan epic and its sub-issues are the live status.
+  carried as the finding's badge in the title/body) vs *lifecycle* (open/fixed —
+  owned entirely by the GitHub issue). The **report has no status table**; the
+  scan epic and its sub-issues are the live status.
 - **PoC handling:** repos are private/internal, so full PoC commands go in the
   issues (the remediation is a high-level *proposed fix*, not a patch). (If a target were public, use GitHub Security Advisories for
   Critical/High instead.)
