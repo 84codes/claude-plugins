@@ -25,6 +25,7 @@ If the plugin's commands don't show up in the `/` menu, run `/reload-plugins`.
 | Plugin | Description |
 | --- | --- |
 | [gem](plugins/gem) | Ruby gem helpers. Includes `/gem:bump` for changelog-rich dependency bumps. |
+| [security](plugins/security) | Dynamically-verified security audit. `/security:audit` proves vulnerabilities with live PoCs and writes a senior-engineer report. |
 
 ## Developing plugins
 

@@ -12,6 +12,14 @@
       "version": "0.1.0",
       "category": "ruby",
       "keywords": ["ruby", "bundler", "gem", "dependencies"]
+    },
+    {
+      "name": "security",
+      "source": "./plugins/security",
+      "description": "White-box, dynamically-verified security audit. /security:audit recons a repo, hunts OWASP Top 10:2025 vulnerabilities, proves them with live PoCs in isolated worktrees, and writes a high-signal senior-engineer report.",
+      "version": "0.1.0",
+      "category": "security",
+      "keywords": ["security", "pentest", "vulnerability", "audit", "owasp", "appsec"]
     }
   ]
 }
