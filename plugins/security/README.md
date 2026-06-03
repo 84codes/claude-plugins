@@ -24,8 +24,17 @@ Then run `/reload-plugins` if the command doesn't appear.
 /security:audit /abs/path/to/target-repo --out /abs/writable/dir
 ```
 
-The output **bundle** is written to `<cwd>/vuln-audit-reports/<slug>/` (or
-`--out`): `report.md` + `findings.json` + `manifest.json`.
+The first argument is the path to the target repo (required). The flags:
+
+| Flag | Meaning |
+|------|---------|
+| `--no-dynamic` | Skip the build/run/PoC phase — static review + adversarial verify only. |
+| `--classes` | Comma-separated vuln-class keys to restrict the audit to (e.g. `injection,ssrf,access-control`; see [`AGENTS.md`](AGENTS.md) for the full taxonomy). Default: classes picked by recon. |
+| `--ref` | Git ref to audit. Default: `HEAD`. |
+| `--out` | Writable directory for the output bundle. Default: `<cwd>/vuln-audit-reports`. |
+
+The output **bundle** is written to `<out>/<slug>/`: `report.md` +
+`findings.json` + `manifest.json`.
 
 ## How it works
 
