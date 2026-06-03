@@ -40,6 +40,9 @@ changing anything.
 3. **Validate the target** — confirm it exists and is a git repo
    (`git -C <target> rev-parse --git-dir`). Worktree isolation and the live-PoC
    phase need git. If it isn't a repo, warn and proceed with `--no-dynamic`.
+   Resolve the ref to a concrete commit with
+   `git -C <target> rev-parse --short <ref or HEAD>` so the run is pinned and
+   reproducible; carry both the ref name and the resolved SHA.
 4. **Preflight host capabilities** → assemble a `hostNotes` string: is `docker`
    usable non-interactively (note if it needs `sudo`); which native runtimes are
    present (`python3`, `node`, `ruby`, `go`, `crystal`, ...). If dynamic is on
@@ -47,7 +50,11 @@ changing anything.
    `--no-dynamic` and say repro will be static/unit-test only.
 5. **Check target threat-model** — note whether
    `<target>/.claude/claude-security-guidance.md` exists; recon folds it in.
-6. **Invoke the workflow** (it runs in the background and notifies on completion):
+6. **Announce the run** — before invoking, print a one-line startup summary:
+   target name, the resolved commit (short SHA), and the absolute output
+   directory. Name the ref only when it isn't `HEAD` (e.g. `v1.2.0 a1b2c3d`);
+   for a plain `HEAD` run just show the SHA. Drop anything left at its default.
+7. **Invoke the workflow** (it runs in the background and notifies on completion):
    ```
    Workflow({ scriptPath: '${CLAUDE_PLUGIN_ROOT}/workflows/vuln-audit.js', args: {
      toolRoot: '${CLAUDE_PLUGIN_ROOT}',
@@ -60,7 +67,7 @@ changing anything.
      hostNotes: '<from step 4>'
    }})
    ```
-7. **Present the result** — when it completes, read `report_path` and give a
+8. **Present the result** — when it completes, read `report_path` and give a
    tight summary: severity counts and the top 1–3 confirmed findings (title +
    location + one-line impact). Point to the bundle dir; don't paste the whole
    report. Surface anything that blocked dynamic verification.
