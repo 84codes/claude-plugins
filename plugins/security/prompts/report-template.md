@@ -25,13 +25,16 @@ Rules:
   status (open/fixed); duplicating it here just goes stale. Weave the counts into
   the summary prose ("one critical and one high, both confirmed"). Verification
   status (confirmed/likely) stays as each finding's badge.
+- Render the commit SHA BARE — no backticks. The report lands in GitHub issues,
+  which auto-link a bare 7–40 char hex SHA to its commit page; backticks make it
+  inert code and kill the link. Same for any other bare commit hash you cite.
 - Omit empty sections.
 -->
 
 # Security Audit — {{target}} @ {{ref}}
 
 **Scope:** {{paths_in_scope}} · **Out of scope:** {{paths_excluded}}
-**Date:** {{date}} · **Method:** static + dynamic (isolated worktree, live PoC) · **Tool:** vuln-audit {{version}}
+**Commit:** {{commit}} · **Date:** {{date}} · **Method:** static + dynamic (isolated worktree, live PoC) · **Tool:** vuln-audit {{version}}
 
 ## Summary
 

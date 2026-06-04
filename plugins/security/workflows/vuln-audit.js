@@ -223,7 +223,7 @@ ${JSON.stringify(finalFindings)}
 Severity tally: ${JSON.stringify(counts)}
 Recon: ${JSON.stringify({ stack: recon.stack, frameworks: recon.frameworks, run_strategy: recon.run_strategy, relevant_classes: classes, skipped: recon.skipped_classes })}
 
-1. ${BUNDLE}/report.md — the human report. FIRST read ${TOOL}/prompts/report-template.md and follow it EXACTLY. Use each finding's "display_id" as its [ID] in the headings. Target: ${TARGET} (ref ${REF}). Scope: ${SCOPE}. Body = confirmed/likely Critical/High/Medium only; appendix = Low/Info + triage (with why) + coverage & method. Terse, senior-oriented; let CWE/OWASP-2025/ASVS refs carry the explanation; show PoC evidence for confirmed findings.
+1. ${BUNDLE}/report.md — the human report. FIRST read ${TOOL}/prompts/report-template.md and follow it EXACTLY. Use each finding's "display_id" as its [ID] in the headings. Target: ${TARGET} (ref ${REF}). Scope: ${SCOPE}. Fill {{commit}} with the resolved commit SHA (the same value you compute for manifest.json via git rev-parse) rendered BARE — no backticks — so GitHub auto-links it. Body = confirmed/likely Critical/High/Medium only; appendix = Low/Info + triage (with why) + coverage & method. Terse, senior-oriented; let CWE/OWASP-2025/ASVS refs carry the explanation; show PoC evidence for confirmed findings.
 
 2. ${BUNDLE}/findings.json — write the SOURCE DATA array above VERBATIM as JSON. Preserve every field and all PoC/observed/fix text exactly; do NOT summarize, reorder, or drop fields. This is the machine interface the courier reconciles against (keyed by "fp").
 
