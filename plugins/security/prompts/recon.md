@@ -21,7 +21,7 @@ points later phases at real code is worth ten of generic prose.
 ## 1. Detect stack, frameworks, and build/run system
 
 Identify the primary language(s), frameworks, and how the target builds and runs.
-Map the result to exactly ONE env playbook key (drives Phase 6 repro):
+Record ONE normalized `stack` label (a hint for Phase 6 repro and the report):
 
 `crystal · ruby · node · python · go · php · java-jvm · rust · generic-docker · ci-iac`
 
@@ -44,19 +44,19 @@ Detection signals (read-only; do not install anything):
   ORMs, template engines, queue/worker libs, and serializers — note each, they
   steer finder selection.
 
-**Playbook key decision:**
+**Stack label decision:**
 
-- A single dominant app language → that language key.
-- **Polyglot:** pick the key for the language that owns the primary attack
-  surface (the network-facing app), note the others in `notes`. A thin shell of
-  one language around a core of another → key on the core.
+- A single dominant app language → that language label.
+- **Polyglot:** label the language that owns the primary attack surface (the
+  network-facing app), note the others in `notes`. A thin shell of one language
+  around a core of another → label the core.
 - No buildable app, just a `Dockerfile`/compose stack to run → `generic-docker`.
 - The repo's PRIMARY artifact is CI/CD pipelines or IaC (GitHub Actions/GitLab
   CI/Forgejo workflows, Terraform/Pulumi/CloudFormation, k8s/Helm, Ansible) with
-  no app to run → `ci-iac`. (Note: an app repo that ALSO has workflows keys on
+  no app to run → `ci-iac`. (Note: an app repo that ALSO has workflows labels on
   the app language; `ci-iac` is for infra-/pipeline-primary repos.)
 
-Record `stack` (the key) and `frameworks` (list).
+Record `stack` (the label) and `frameworks` (list).
 
 ## 2. Map the attack surface and trust boundaries
 
@@ -97,47 +97,20 @@ not a lead; record it so later phases don't re-chase it.
 ## 3. Select relevant finder classes (and justify skips)
 
 For each of the 14 classes, decide RELEVANT or SKIPPED based on the surface from
-step 2. The 14 classes (see `prompts/finders/<key>.md`):
+step 2. The 14 classes (the workflow injects each one's full context downstream):
 
 `access-control · ssrf · injection · xss-ssti · auth-session · crypto ·
 deserialization · path-file · secrets · misconfig · supply-chain ·
 logging-errors · dos-redos · csrf-cors`
 
-Relevance heuristics (a class is RELEVANT when its source AND sink both exist):
-
-- **access-control** — any authz boundary or multi-tenant/object-owned resource
-  (IDOR). Almost always relevant if there are authenticated routes.
-- **ssrf** — relevant iff an outbound network call exists with a caller-
-  influenced destination (step 2 outbound list non-empty).
-- **injection** — relevant iff untrusted input reaches a SQL/NoSQL/OS/LDAP/XPath
-  interpreter. Skip if all DB access is ORM-parameterized AND no shell-out.
-- **xss-ssti** — relevant iff server emits HTML/templates with untrusted data,
-  or a template engine renders caller-controlled strings. Skip for pure JSON
-  APIs with no template engine and no HTML rendering.
-- **auth-session** — relevant iff the app issues/validates sessions, tokens,
-  passwords, MFA, or OAuth. Skip if there is no auth at all (note that fact).
-- **crypto** — relevant iff the code does its own crypto: hashing passwords,
-  signing/verifying tokens, encrypting data, RNG for security, TLS config. Skip
-  if no security-relevant crypto primitives are used directly.
-- **deserialization** — relevant iff untrusted bytes hit a deserializer (step 2
-  deserialization list non-empty), esp. native/object formats.
-- **path-file** — relevant iff a caller-influenced path reaches a file op.
-- **secrets** — relevant iff the repo loads/handles credentials or there is any
-  chance of committed secrets (almost always run a quick pass).
-- **misconfig** — relevant iff there is framework/server/cloud config: debug
-  flags, CORS, cookie flags, TLS, exposed admin/actuator, default creds.
-- **supply-chain** — relevant iff there are CI/CD workflows (Dangerous-Workflow,
-  script injection, over-broad tokens, unpinned actions) OR dependency manifests
-  with lockfiles (known-vuln deps). Code-exploitable checks ONLY (per AGENTS.md);
-  posture/SBOM/maintainership is NOT a finding.
-- **logging-errors** — relevant iff untrusted input is logged (log injection /
-  sensitive-data leak) or error handling exposes stack traces / leaks state /
-  fails open (A10).
-- **dos-redos** — relevant iff a user-controlled value reaches a regex, an
-  unbounded loop/allocation, a zip/decompress, or an expensive parse.
-- **csrf-cors** — relevant iff there are state-changing cookie-authenticated
-  routes, CORS config, or framing-sensitive UI. Skip pure token-auth APIs with
-  no cookies (note why).
+A class is RELEVANT when its source AND its sink both exist in the surface map —
+e.g. ssrf needs a caller-influenced outbound call; injection needs untrusted
+input reaching a SQL/NoSQL/OS/LDAP/XPath interpreter; xss-ssti needs HTML/template
+rendering of untrusted data; auth-session needs the app to issue/validate
+sessions or tokens; deserialization needs untrusted bytes hitting a deserializer.
+Apply the same source-and-sink test to the rest. `secrets` and `misconfig` are
+near-always worth a quick pass. For `supply-chain`, only code-exploitable CI/CD
+and dependency issues count (per AGENTS.md) — posture/SBOM/maintainership is not.
 
 Output two lists. For every RELEVANT class, add a one-line **priority pointer**:
 the specific surfaces/files from step 2 that finder should hit first. For every
@@ -193,7 +166,7 @@ phases consume it). Shape:
 
 ```json
 {
-  "stack": "<one playbook key>",
+  "stack": "<one normalized stack label>",
   "frameworks": ["<framework/orm/template/queue lib>", "..."],
   "run_strategy": "docker-compose | docker | native | unit-test | static-poc",
   "entrypoints": [
@@ -216,7 +189,7 @@ phases consume it). Shape:
 }
 ```
 
-Rules for the object: `stack` is exactly one playbook key; `relevant_classes` +
+Rules for the object: `stack` is exactly one normalized label; `relevant_classes` +
 `skipped_classes` together cover all 14, no overlap; every `attack_surface` entry
 has a real `file:line`; `entrypoints` is the subset of surfaces where untrusted
 input first enters. Keep `notes` operational — it is the bridge to Phase 6.

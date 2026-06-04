@@ -26,11 +26,11 @@ where the bundle is written.
 | Phase | What | Primitive |
 |-------|------|-----------|
 | 1. Recon | Detect stack, map attack surface & trust boundaries, pick run strategy, select relevant finder classes | single agent (`prompts/recon.md`) |
-| 2. Triage | One finder per vuln class scans its surface, emits candidate findings | `parallel()` finders |
+| 2. Triage | One finder per vuln class scans its surface, emits candidate findings (all share `prompts/finder.md`; the workflow injects the class + its OWASP/CWE/ASVS) | `parallel()` finders |
 | 3. Dedup | Collapse same-root-cause findings across call sites | plain JS in the workflow |
 | 4. Deep review | Re-examine each candidate with surrounding context (callers, sanitizers, related files); confirm a reachable source→sink path | `pipeline()` stage |
 | 5. Adversarial verify | Independent skeptics, each a distinct lens, try to **refute** the finding; majority-refute kills it | `parallel()` skeptic panel |
-| 6. Dynamic repro | Survivors are built & run in an isolated git **worktree** (docker-first); a real PoC is fired and impact observed | `agent(..., {isolation:'worktree'})` |
+| 6. Dynamic repro | Survivors are built & run in an isolated git **worktree** (docker-first, via `prompts/playbook.md`); a real PoC is fired and impact observed | `agent(..., {isolation:'worktree'})` |
 | 7. Report | Synthesize the senior-engineer report (`prompts/report-template.md`) | single agent |
 
 ## Reference evaluation (why we adopt what we adopt)
@@ -63,8 +63,10 @@ where the bundle is written.
 
 ## Vuln-class taxonomy (finders)
 
-Each maps to OWASP Top 10:2025 + CWE + an ASVS v5.0 chapter. One prompt file per
-class under `prompts/finders/<key>.md`.
+Each maps to OWASP Top 10:2025 + CWE + an ASVS v5.0 chapter. The mapping is the
+`CLASS_META` table in `workflows/vuln-audit.js` (single source of truth); all
+classes share one method prompt, `prompts/finder.md`, with the per-class context
+injected by the workflow.
 
 | key | title | OWASP 2025 | ASVS |
 |-----|-------|-----------|------|
@@ -148,8 +150,8 @@ and verify:
 skills/audit/SKILL.md                 # agent-facing orchestrator (/security:audit)
 workflows/vuln-audit.js              # the Workflow script (the engine)
 prompts/recon.md                     # phase-1 recon prompt
-prompts/finders/<key>.md             # one finder prompt per vuln class
-prompts/playbooks/<key>.md           # per-ecosystem build/run/exploit playbook
+prompts/finder.md                     # shared finder method (per-class context injected by the workflow)
+prompts/playbook.md                   # shared build/run/exploit repro playbook (stack-agnostic)
 prompts/report-template.md           # the report format (phase 7)
 docs/issue-tracking.md               # output bundle → GitHub issues + naming rules
 ```

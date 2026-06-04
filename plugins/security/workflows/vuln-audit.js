@@ -35,10 +35,27 @@ const SCOPE = A.scope || TARGET
 const HOST = A.hostNotes || ''        // host capability/constraint notes (e.g. "docker needs sudo; python3 native available")
 const OUT = A.outDir ? String(A.outDir).replace(/\/+$/, '') : TOOL   // writable bundle output dir; defaults to toolRoot (standalone), but a plugin MUST pass a writable outDir — the plugin root is read-only/ephemeral
 
-const ALL_CLASSES = ['access-control', 'ssrf', 'injection', 'xss-ssti', 'auth-session', 'crypto', 'deserialization', 'path-file', 'secrets', 'misconfig', 'supply-chain', 'logging-errors', 'dos-redos', 'csrf-cors']
-
-// Short class codes for the human-facing display id (e.g. training-tool-AC-1f3a).
-const CLASS_CODE = { 'access-control': 'AC', ssrf: 'SSRF', injection: 'INJ', 'xss-ssti': 'XSS', 'auth-session': 'AUTH', crypto: 'CRYPTO', deserialization: 'DESER', 'path-file': 'PATH', secrets: 'SEC', misconfig: 'MISC', 'supply-chain': 'SUPPLY', 'logging-errors': 'LOG', 'dos-redos': 'DOS', 'csrf-cors': 'CSRF' }
+// Vuln-class taxonomy — single source of truth (mirrors the AGENTS.md table).
+// `code` is the human-facing display-id token; owasp/cwe/asvs are the canonical
+// mapping injected into the generic finder prompt; `focus` scopes the hunt.
+const CLASS_META = {
+  'access-control': { code: 'AC', title: 'Broken Access Control & IDOR', owasp: 'A01:2025', cwe: 'CWE-639/862/863/601', asvs: 'V8', focus: 'missing/incorrect authz, IDOR by object key, tenant isolation, open redirect' },
+  ssrf: { code: 'SSRF', title: 'Server-Side Request Forgery', owasp: 'A01:2025', cwe: 'CWE-918', asvs: 'V4', focus: 'caller-influenced destination of a server-side outbound request reaching internal/metadata endpoints' },
+  injection: { code: 'INJ', title: 'Injection (SQL/NoSQL/OS/LDAP/XPath)', owasp: 'A05:2025', cwe: 'CWE-89/78/943/90/74', asvs: 'V1/V2', focus: 'untrusted input crossing into the command/query structure with no parameterization/escaping/allowlist' },
+  'xss-ssti': { code: 'XSS', title: 'XSS & Template Injection', owasp: 'A05:2025', cwe: 'CWE-79/1336/116', asvs: 'V1/V3', focus: 'untrusted data emitted into an HTML/JS context unescaped, or controlling template source (SSTI)' },
+  'auth-session': { code: 'AUTH', title: 'Authentication & Session', owasp: 'A07:2025', cwe: 'CWE-287/384/620/640/521', asvs: 'V6/V7/V9/V10', focus: 'login/session/token issuance & validation, password reset, MFA, JWT/OAuth flaws' },
+  crypto: { code: 'CRYPTO', title: 'Cryptographic Failures', owasp: 'A04:2025', cwe: 'CWE-327/328/326/330/916/295', asvs: 'V11', focus: 'weak/broken algos, fast or unsalted password hashing, weak RNG for security, missing cert validation' },
+  deserialization: { code: 'DESER', title: 'Insecure Deserialization & Integrity', owasp: 'A08:2025', cwe: 'CWE-502/494/345', asvs: 'V2/V15', focus: 'untrusted bytes to a native/object deserializer; unverified code/data integrity' },
+  'path-file': { code: 'PATH', title: 'Path Traversal & File Handling', owasp: 'A01:2025', cwe: 'CWE-22/98/73/434', asvs: 'V5', focus: 'caller-controlled path segment reaching a file op (traversal, RFI, zip-slip, dangerous upload)' },
+  secrets: { code: 'SEC', title: 'Hardcoded Secrets & Credentials', owasp: 'A02:2025', cwe: 'CWE-798/259/321/547', asvs: 'V14', focus: 'live credentials/keys/connection strings committed in code or config' },
+  misconfig: { code: 'MISC', title: 'Security Misconfiguration', owasp: 'A02:2025', cwe: 'CWE-16/614/942/1004/611', asvs: 'V13', focus: 'debug flags, permissive CORS, insecure cookie flags, exposed admin, XXE, default creds' },
+  'supply-chain': { code: 'SUPPLY', title: 'Software Supply Chain & CI/CD', owasp: 'A03:2025', cwe: 'CWE-1104/1357/829/506', asvs: 'V15', focus: 'dangerous CI workflows (pull_request_target + untrusted checkout, script injection, over-broad tokens, unpinned actions), malicious lifecycle scripts, known-vuln/typosquat deps — code-exploitable only' },
+  'logging-errors': { code: 'LOG', title: 'Logging, Error & Exception Handling', owasp: 'A09/A10:2025', cwe: 'CWE-532/209/755/703/396', asvs: 'V16', focus: 'sensitive data in logs, stack traces/state leaked in errors, fail-open exception handling, log injection' },
+  'dos-redos': { code: 'DOS', title: 'Denial of Service & ReDoS', owasp: 'A06:2025', cwe: 'CWE-1333/400/770/834', asvs: 'V2', focus: 'user input to a catastrophic-backtracking regex, unbounded alloc/loop, decompression bomb, expensive parse' },
+  'csrf-cors': { code: 'CSRF', title: 'CSRF, CORS & Clickjacking', owasp: 'A01:2025', cwe: 'CWE-352/1021/942', asvs: 'V3', focus: 'state-changing cookie-auth routes lacking CSRF defense, reflective/permissive CORS, missing framing protection' },
+}
+const ALL_CLASSES = Object.keys(CLASS_META)
+const CLASS_CODE = Object.fromEntries(Object.entries(CLASS_META).map(([k, v]) => [k, v.code]))
 // Deterministic fingerprint (djb2) over class|file|sink — the stable dedup key
 // across scans, identical on the VM and the courier (no shared allocator needed).
 function fpHash(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(16).padStart(8, '0') }
@@ -78,7 +95,7 @@ const FINDING_PROPS = {
 }
 const FINDING = { type: 'object', properties: FINDING_PROPS, required: ['title', 'vuln_class', 'severity', 'file', 'rationale'], additionalProperties: true }
 const FINDINGS = { type: 'object', properties: { findings: { type: 'array', items: FINDING } }, required: ['findings'], additionalProperties: true }
-// Matches the contract emitted by prompts/recon.md: `stack` is one playbook key,
+// Matches the contract emitted by prompts/recon.md: `stack` is a label,
 // `run_strategy` is an enum string, `relevant_classes` is [{class, priority_surfaces}].
 const RECON = {
   type: 'object',
@@ -123,7 +140,7 @@ log(`recon: ${recon.stack} | strategy: ${recon.run_strategy} | classes: ${classe
 // ---- phase 2: triage finders ----
 phase('Triage')
 const finderResults = (await parallel(classes.map(k => () => agent(
-  `Audit the target repository for the "${k}" vulnerability class. FIRST read the finder prompt at ${TOOL}/prompts/finders/${k}.md and follow it exactly. Target: ${TARGET} (ref ${REF}). Prioritize these surfaces surfaced by recon: ${JSON.stringify((recon.attack_surface || []).slice(0, 40))}. Inspect code with Read/Grep/Bash/ast-grep. ${SIGNAL} Return {findings:[...]}; each candidate must fill source, sink, data_flow, and sanitizers_checked. Return {findings:[]} if nothing real.`,
+  `Hunt the "${k}" vulnerability class (${CLASS_META[k].title}) in the target. FIRST read the finder method at ${TOOL}/prompts/finder.md and follow it. Class context — OWASP ${CLASS_META[k].owasp}, CWE ${CLASS_META[k].cwe}, ASVS ${CLASS_META[k].asvs}; focus: ${CLASS_META[k].focus}. Target: ${TARGET} (ref ${REF}). Prioritize these surfaces surfaced by recon: ${JSON.stringify((recon.attack_surface || []).slice(0, 40))}. Inspect code with Read/Grep/Bash/ast-grep. ${SIGNAL} Return {findings:[...]}; each candidate must fill source, sink, data_flow, sanitizers_checked, and set owasp/cwe/asvs from the class context. Return {findings:[]} if nothing real.`,
   { label: `find:${k}`, phase: 'Triage', schema: FINDINGS, ...AGENT },
 )))).filter(Boolean)
 const raw = finderResults.flatMap(r => (r && r.findings) || [])
@@ -164,7 +181,7 @@ const processed = consolidated.length ? await pipeline(
     if (!rev) return rev
     if (!rev.keep || !runnable) return { ...rev, repro: null }
     const repro = await agent(
-      `Reproduce this finding dynamically against a RUNNING instance of the target, to prove it. Finding:\n${JSON.stringify(rev.finding)}\nRun strategy: ${recon.run_strategy}. Boot notes from recon: ${JSON.stringify(recon.notes || '')}.\nFollow the env playbook at ${TOOL}/prompts/playbooks/${recon.stack}.md. Create a git worktree of ${TARGET} at ${REF} so the original tree is untouched; build & run it (docker-first). Use a UNIQUE container name and an ephemeral host port keyed to "${rev.finding.id || 'f'}" to avoid collisions with parallel repros. Fire the PoC and capture the observed result as evidence. Keep ALL traffic local — no external targets, no real credentials, no exfiltration. Tear down containers/processes and the worktree when done. HOST CONSTRAINTS (honor when choosing how to run — e.g. if docker is unavailable, run the app natively instead): ${HOST || 'none noted'}. If it genuinely cannot run live, fall back to a unit-test or static PoC and set method accordingly. Return the repro result.`,
+      `Reproduce this finding dynamically against a RUNNING instance of the target, to prove it. Finding:\n${JSON.stringify(rev.finding)}\nRun strategy: ${recon.run_strategy}. Stack: ${recon.stack}; frameworks: ${JSON.stringify(recon.frameworks || [])}. Boot notes from recon: ${JSON.stringify(recon.notes || '')}.\nFollow the repro playbook at ${TOOL}/prompts/playbook.md. Create a git worktree of ${TARGET} at ${REF} so the original tree is untouched; build & run it (docker-first). Use a UNIQUE container name and an ephemeral host port keyed to "${rev.finding.id || 'f'}" to avoid collisions with parallel repros. Fire the PoC and capture the observed result as evidence. Keep ALL traffic local — no external targets, no real credentials, no exfiltration. Tear down containers/processes and the worktree when done. HOST CONSTRAINTS (honor when choosing how to run — e.g. if docker is unavailable, run the app natively instead): ${HOST || 'none noted'}. If it genuinely cannot run live, fall back to a unit-test or static PoC and set method accordingly. Return the repro result.`,
       { label: `repro:${rev.finding.id || 'f'}`, phase: 'Repro', schema: REPRO, ...AGENT },
     )
     return { ...rev, repro }
