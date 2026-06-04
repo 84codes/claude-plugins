@@ -1,0 +1,13 @@
+{
+  "name": "security",
+  "version": "0.1.0",
+  "description": "White-box, dynamically-verified security audit. /security:audit recons a repo, hunts vulnerabilities across the OWASP Top 10:2025 classes, proves them with live PoCs in isolated worktrees, and writes a high-signal senior-engineer report.",
+  "author": {
+    "name": "84codes",
+    "url": "https://github.com/84codes"
+  },
+  "homepage": "https://github.com/84codes/claude-plugins/tree/main/plugins/security",
+  "repository": "https://github.com/84codes/claude-plugins",
+  "license": "MIT",
+  "keywords": ["security", "pentest", "vulnerability", "audit", "owasp", "appsec", "sast"]
+}
